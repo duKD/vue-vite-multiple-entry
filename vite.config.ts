@@ -1,7 +1,9 @@
 import { UserConfig, ConfigEnv } from 'vite'
 import vue from '@vitejs/plugin-vue'
 import { resolve, join } from 'path'
+import fs from 'fs'
 import glob from 'glob'
+import { deleteFile } from './build/plugin'
 import legacy from '@vitejs/plugin-legacy'
 import checker from 'vite-plugin-checker'
 
@@ -9,12 +11,14 @@ const assetsPath = (path: string) => {
   return join('static', path)
 }
 
-const getEntryPath = () => {
+export const getEntryPath = () => {
   const pageEntry: any = {}
-  glob.sync('./src/pages/**/index.html').forEach((entry: string) => {
+  glob.sync('./src/pages/**/main.ts').forEach((entry: string) => {
     const pathArr: string[] = entry.split('/')
     const name: string = pathArr[pathArr.length - 2]
-    pageEntry[name] = join(process.cwd(), `/src/pages/${name}/index.html`)
+    const ctx = process.cwd()
+    pageEntry[name] = join(ctx, `/src/pages/${name}/index.html`)
+    fs.copyFileSync(ctx + '/index.html', pageEntry[name])
   })
   console.log(pageEntry)
   return pageEntry
@@ -74,7 +78,8 @@ export default ({ command, mode }: ConfigEnv): UserConfig => {
       !isBuild &&
         checker({
           vueTsc: true
-        })
+        }),
+      deleteFile()
     ],
     build: {
       outDir: resolve(process.cwd(), 'dist'), // 指定输出路径（相对于 项目根目录)
